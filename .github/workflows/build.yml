@@ -1,43 +1,86 @@
 name: Build APK
-on: [push]
+
+on:
+  push:
+    branches:
+      - main
+
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
-      - uses: actions/setup-python@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Pre-install licenses + build-tools 37
+
+      - name: Install dependencies
         run: |
-          sudo apt update && sudo apt install -y zip unzip ant
-          pip install Cython==0.29.33 buildozer
-          SDK=~/.buildozer/android/platform/android-sdk
-          SYS=/usr/local/lib/android/sdk
-          mkdir -p $SDK ~/.android
-          touch ~/.android/repositories.cfg
-          # 1. Aceptar TODO en SDK del sistema
-          yes | $SYS/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          # 2. Copiar cmdline-tools
-          mkdir -p $SDK/cmdline-tools
-          rm -rf $SDK/cmdline-tools/latest
-          cp -r $SYS/cmdline-tools/latest $SDK/cmdline-tools/
-          # 3. Copiar LICENCIAS REALES ya aceptadas (esto es lo que te faltaba)
-          mkdir -p $SDK/licenses
-          cp -r $SYS/licenses/* $SDK/licenses/ || true
-          ls $SDK/licenses/
-          # 4. Ahora sí instalar en el SDK de buildozer
-          $SDK/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK "build-tools;37.0.0" "platforms;android-34" "platform-tools" "ndk;25.1.8937393"
-          ls $SDK/build-tools/37.0.0/
-          $SDK/build-tools/37.0.0/aidl --version
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5 \
+            libncurses6 \
+            libtinfo5 \
+            cmake
+
+          python -m pip install --upgrade pip
+          python -m pip install "Cython==0.29.33" buildozer
+
+      - name: Install Android SDK packages
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          mkdir -p "$SDK"
+
+          if [ -d "$ANDROID_HOME/cmdline-tools/latest" ]; then
+            mkdir -p "$SDK/cmdline-tools"
+            cp -r "$ANDROID_HOME/cmdline-tools/latest" "$SDK/cmdline-tools/latest"
+          fi
+
+          mkdir -p "$SDK/licenses"
+
+          if [ -d "$ANDROID_HOME/licenses" ]; then
+            cp -r "$ANDROID_HOME/licenses/"* "$SDK/licenses/" || true
+          fi
+
+          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+
+          chmod +x "$SDKMANAGER"
+
+          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses || true
+
+          "$SDKMANAGER" --sdk_root="$SDK" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;25.2.9519653"
+
+          echo "Android SDK instalado correctamente"
+
       - name: Build APK
         run: |
           buildozer android debug --verbose
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: APK
           path: bin/*.apk
