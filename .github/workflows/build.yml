@@ -8,27 +8,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install System Deps
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Install Buildozer Master
         run: |
           sudo apt update
-          sudo apt install -y openjdk-17-jdk zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          sudo apt install -y zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev libltdl-dev
           pip install --upgrade pip
-          pip install buildozer cython==0.29.33
-      - name: Force Accept ALL Licenses + Install Build-Tools 37
-        run: |
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          export ANDROID_SDK_ROOT=$ANDROID_HOME
-          mkdir -p $ANDROID_HOME/licenses
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
-          echo "24333f8a63b6825ea9c5514f83c1059b8ea3b4fd" >> $ANDROID_HOME/licenses/android-sdk-license
-          echo "y" | sdkmanager --licenses || true
-          yes | sdkmanager "build-tools;37.0.0" "build-tools;33.0.2" "platform-tools" || true
-          ls $ANDROID_HOME/build-tools/ || true
+          pip install cython==0.29.33
+          pip install https://github.com/kivy/buildozer/archive/master.zip
+          pip install https://github.com/kivy/python-for-android/archive/master.zip
       - name: Build APK
         run: |
+          yes | sdkmanager --licenses || true
           buildozer android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
