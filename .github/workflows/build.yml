@@ -1,6 +1,7 @@
 name: Build APK
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -10,24 +11,24 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             git \
             zip \
@@ -37,77 +38,26 @@ jobs:
             libtool \
             pkg-config \
             zlib1g-dev \
-            libncurses5 \
-            libncurses6 \
+            libncurses5-dev \
+            libncursesw5-dev \
             libtinfo5 \
-            cmake
+            cmake \
+            libffi-dev \
+            libssl-dev
 
-          python -m pip install --upgrade pip
-
-          python -m pip install \
-            "Cython==0.29.33" \
-            buildozer
-
-      - name: Prepare Android SDK
+      - name: Install Python dependencies
         run: |
-          SDK="$HOME/.buildozer/android/platform/android-sdk"
-          SYSTEM_SDK="$ANDROID_HOME"
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade buildozer
+          python -m pip install "cython==0.29.34"
 
-          echo "Sistema SDK:"
-          echo "$SYSTEM_SDK"
-
-          echo "Buildozer SDK:"
-          echo "$SDK"
-
-          # Crear estructura que Buildozer espera
-          mkdir -p "$SDK"
-
-          rm -rf "$SDK/tools"
-          mkdir -p "$SDK/tools"
-
-          # Copiar COMPLETO command-line-tools
-          # No usar enlaces simbólicos porque sdkmanager necesita
-          # sus carpetas bin y lib juntas.
-          cp -r "$SYSTEM_SDK/cmdline-tools/latest/"* "$SDK/tools/"
-
-          chmod +x "$SDK/tools/bin/sdkmanager"
-
-          echo "Contenido de tools:"
-          ls -la "$SDK/tools"
-
-          echo "Contenido de tools/bin:"
-          ls -la "$SDK/tools/bin"
-
-          echo "Comprobando sdkmanager..."
-
-          "$SDK/tools/bin/sdkmanager" --version
-
-          echo "sdkmanager funciona correctamente"
-
-          # Licencias
-          yes | "$SDK/tools/bin/sdkmanager" \
-            --sdk_root="$SDK" \
-            --licenses || true
-
-          # Herramientas Android necesarias
-          "$SDK/tools/bin/sdkmanager" \
-            --sdk_root="$SDK" \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-
-          echo "Android SDK preparado correctamente"
+      - name: Accept Android licenses
+        run: |
+          mkdir -p "$HOME/.android"
+          touch "$HOME/.android/repositories.cfg"
 
       - name: Build APK
         run: |
-          SDK="$HOME/.buildozer/android/platform/android-sdk"
-
-          echo "Verificando sdkmanager antes de Buildozer..."
-
-          "$SDK/tools/bin/sdkmanager" --version
-
-          echo "Iniciando Buildozer..."
-
           buildozer android debug --verbose
 
       - name: Upload APK
