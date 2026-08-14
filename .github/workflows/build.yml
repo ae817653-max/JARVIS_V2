@@ -10,25 +10,38 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-33 build-tools;33.0.2 build-tools;37.0.0 ndk;28c'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install Buildozer
+      - name: Install Android SDK manually
+        run: |
+          sudo mkdir -p /usr/local/lib/android/sdk/cmdline-tools
+          cd /tmp
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          sudo unzip -q commandlinetools-linux-11076708_latest.zip -d /usr/local/lib/android/sdk/cmdline-tools
+          sudo mv /usr/local/lib/android/sdk/cmdline-tools/cmdline-tools /usr/local/lib/android/sdk/cmdline-tools/latest
+          sudo mkdir -p /usr/local/lib/android/sdk/licenses
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" | sudo tee /usr/local/lib/android/sdk/licenses/android-sdk-license > /dev/null
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" | sudo tee -a /usr/local/lib/android/sdk/licenses/android-sdk-license > /dev/null
+          echo "24333f8a63b6825ea9c5514f83c1059b8ea3b4fd" | sudo tee -a /usr/local/lib/android/sdk/licenses/android-sdk-license > /dev/null
+          sudo mkdir -p /usr/local/lib/android/sdk/tools/bin
+          sudo ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager /usr/local/lib/android/sdk/tools/bin/sdkmanager
+          sudo ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/avdmanager /usr/local/lib/android/sdk/tools/bin/avdmanager || true
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+          yes | sudo -E sdkmanager --licenses || true
+          sudo -E sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "build-tools;37.0.0" "ndk;28c"
+          sdkmanager --list | grep build-tools || true
+      - name: Install Buildozer Master
         run: |
           pip install cython==0.29.33
           pip install https://github.com/kivy/buildozer/archive/master.zip
           pip install https://github.com/kivy/python-for-android/archive/master.zip
-      - name: Fix sdkmanager path
-        run: |
-          mkdir -p /usr/local/lib/android/sdk/tools/bin
-          ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager /usr/local/lib/android/sdk/tools/bin/sdkmanager
-          ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/avdmanager /usr/local/lib/android/sdk/tools/bin/avdmanager || true
-          ls /usr/local/lib/android/sdk/build-tools/
       - name: Build APK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: buildozer android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
