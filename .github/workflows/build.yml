@@ -44,39 +44,67 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install "Cython==0.29.33" buildozer
 
-      - name: Install Android SDK packages
+      - name: Prepare Android SDK
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
+          SYS="$ANDROID_HOME"
 
           mkdir -p "$SDK"
+          mkdir -p "$SDK/cmdline-tools"
 
-          if [ -d "$ANDROID_HOME/cmdline-tools/latest" ]; then
-            mkdir -p "$SDK/cmdline-tools"
-            cp -r "$ANDROID_HOME/cmdline-tools/latest" "$SDK/cmdline-tools/latest"
+          # Copiar command-line tools
+          if [ -d "$SYS/cmdline-tools/latest" ]; then
+            rm -rf "$SDK/cmdline-tools/latest"
+            cp -r "$SYS/cmdline-tools/latest" "$SDK/cmdline-tools/latest"
           fi
 
-          mkdir -p "$SDK/licenses"
+          # Compatibilidad con Buildozer:
+          # Buildozer busca sdkmanager en tools/bin/sdkmanager
+          mkdir -p "$SDK/tools"
 
-          if [ -d "$ANDROID_HOME/licenses" ]; then
-            cp -r "$ANDROID_HOME/licenses/"* "$SDK/licenses/" || true
-          fi
+          rm -rf "$SDK/tools/bin"
 
-          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          ln -s \
+            "$SDK/cmdline-tools/latest/bin" \
+            "$SDK/tools/bin"
 
-          chmod +x "$SDKMANAGER"
+          chmod +x "$SDK/cmdline-tools/latest/bin/sdkmanager"
 
-          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses || true
+          echo "Comprobando sdkmanager..."
 
-          "$SDKMANAGER" --sdk_root="$SDK" \
+          "$SDK/tools/bin/sdkmanager" --version
+
+          echo "sdkmanager encontrado correctamente"
+
+          # Aceptar licencias
+          yes | "$SDK/tools/bin/sdkmanager" \
+            --sdk_root="$SDK" \
+            --licenses || true
+
+          # Instalar herramientas necesarias
+          "$SDK/tools/bin/sdkmanager" \
+            --sdk_root="$SDK" \
             "platform-tools" \
             "platforms;android-35" \
-            "build-tools;35.0.0" \
-            "ndk;25.2.9519653"
+            "build-tools;35.0.0"
 
-          echo "Android SDK instalado correctamente"
+          echo "Android SDK preparado correctamente"
 
       - name: Build APK
         run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          # Asegurar que Buildozer encuentre sdkmanager
+          mkdir -p "$SDK/tools"
+
+          if [ ! -e "$SDK/tools/bin" ]; then
+            ln -s "$SDK/cmdline-tools/latest/bin" "$SDK/tools/bin"
+          fi
+
+          echo "Verificando sdkmanager:"
+          "$SDK/tools/bin/sdkmanager" --version
+
+          echo "Iniciando Buildozer..."
           buildozer android debug --verbose
 
       - name: Upload APK
