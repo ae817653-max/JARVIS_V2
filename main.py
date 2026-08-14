@@ -1,44 +1,47 @@
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.button import Button
+name: Build JARVIS APK
 
+on:
+  workflow_dispatch:
 
-class JarvisApp(App):
-    def build(self):
-        layout = BoxLayout(
-            orientation="vertical",
-            padding=20,
-            spacing=20,
-        )
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
 
-        title = Label(
-            text="JARVIS",
-            font_size="32sp",
-        )
+    steps:
 
-        message = Label(
-            text="Sistema iniciado correctamente",
-            font_size="20sp",
-        )
+      - name: Checkout
+        uses: actions/checkout@v4
 
-        button = Button(
-            text="Probar JARVIS",
-            size_hint_y=None,
-            height=60,
-        )
+      - name: Verify project
+        shell: bash
+        run: |
+          set -e
 
-        def on_press(instance):
-            message.text = "JARVIS está funcionando"
+          echo "Directorio actual:"
+          pwd
 
-        button.bind(on_press=on_press)
+          echo "Archivos del proyecto:"
+          ls -la
 
-        layout.add_widget(title)
-        layout.add_widget(message)
-        layout.add_widget(button)
+          echo "Comprobando archivos necesarios..."
 
-        return layout
+          test -f main.py
+          test -f buildozer.spec
 
+          echo "OK: main.py encontrado"
+          echo "OK: buildozer.spec encontrado"
 
-if __name__ == "__main__":
-    JarvisApp().run()
+      - name: Build APK
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          workdir: .
+          buildozer_version: stable
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JARVIS-APK
+          path: ${{ steps.buildozer.outputs.filename }}
+          if-no-files-found: error
