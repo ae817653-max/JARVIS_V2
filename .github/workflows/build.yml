@@ -5,32 +5,32 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+
       - name: Setup Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install system deps
+
+      - name: Clean cache
+        run: rm -rf ~/.buildozer $HOME/.cache/pip
+
+      - name: Install tools
         run: |
           sudo apt update
-          sudo apt install -y zip unzip libffi-dev libssl-dev libbz2-dev
-      - name: Pre-install Android SDK 33 + NDK 25b
-        run: |
-          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools"
-          mkdir -p $HOME/.buildozer/android/platform
-          cd $HOME/.buildozer/android/platform
-          rm -rf android-ndk-r25b
-          wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-          unzip -q android-ndk-r25b-linux.zip
+          sudo apt install -y zip unzip libffi-dev libssl-dev
+
       - name: Build APK
         run: |
           pip install Cython==0.29.33 buildozer
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
           buildozer android debug --verbose
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
