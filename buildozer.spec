@@ -14,9 +14,9 @@ android.minapi = 21
 android.ndk = 25b
 android.build_tools_version = 33.0.2
 android.accept_sdk_license_agreements = True
-android.sdk_path = /usr/local/lib/android/sdk
-android.ndk_path = /usr/local/lib/android/sdk/ndk/25.1.8937393
-p4a.branch = master
+android.ndk = 28c
+android.ndk_path = /usr/local/lib/android/sdk/ndk/28.0.13004108
+android.sdk_path = /usr/local/lib/android/sdkp4a.branch = master
 p4a.bootstrap = sdl2
 
 [buildozer]
