@@ -1,24 +1,54 @@
-name: Build APK 2
+name: Build APK
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      - uses: actions/setup-python@v5
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Build
+
+      - name: Install dependencies
         run: |
-          pip install Cython==0.29.33 buildozer
-          sudo apt update && sudo apt install -y zip unzip
+          sudo apt update
+          sudo apt install -y zip unzip python3-pip libffi-dev libssl-dev libltdl-dev libsqlite3-dev libbz2-dev
+
+      - name: Install Android SDK correctly
+        run: |
+          sudo mkdir -p /usr/local/lib/android/sdk/cmdline-tools
+          cd /tmp
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          sudo unzip -q commandlinetools-linux-11076708_latest.zip -d /usr/local/lib/android/sdk/cmdline-tools
+          sudo mv /usr/local/lib/android/sdk/cmdline-tools/cmdline-tools /usr/local/lib/android/sdk/cmdline-tools/latest
+          sudo mkdir -p /usr/local/lib/android/sdk/licenses
+          sudo mkdir -p /usr/local/lib/android/sdk/tools/bin
+          sudo ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager /usr/local/lib/android/sdk/tools/bin/sdkmanager
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" | sudo tee /usr/local/lib/android/sdk/licenses/android-sdk-license
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" | sudo tee -a /usr/local/lib/android/sdk/licenses/android-sdk-license
+          echo "24333f8a63b6825ea9c5514f83c1059b8ea3b4fd" | sudo tee -a /usr/local/lib/android/sdk/licenses/android-sdk-license
+
+      - name: Build APK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/25.1.8937393
+        run: |
+          pip install --upgrade pip
+          pip install Cython==0.29.33
+          pip install buildozer
           buildozer android debug --verbose
-      - uses: actions/upload-artifact@v4
-        if: always()
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: my-apk
+          name: JARVIS-APK
           path: bin/*.apk
