@@ -1,16 +1,18 @@
 [app]
-title = JARVIS V2.0
+title = JARVIS V2
 package.name = jarvisv2
-package.domain = org.tu.jarvisv2
+package.domain = com.jarvis.v2
 source.dir =.
-version = 2.0
-requirements = python3,kivy,android,Pyjnius,SpeechRecognition
+source.include_exts = py,png,jpg,kv,atlas,json
+version = 0.1
+requirements = python3,kivy
 orientation = portrait
-services = JARVIS:service/main.py:sticky
-android.permissions = RECORD_AUDIO,FOREGROUND_SERVICE,POST_NOTIFICATIONS,WAKE_LOCK,INTERNET
+fullscreen = 0
+android.permissions = INTERNET,RECORD_AUDIO,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,FOREGROUND_SERVICE
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
-android.accept_sdk_license_agreement = True
+
 [buildozer]
-log_level = 1
+log_level = 2
+warn_on_root = 1
