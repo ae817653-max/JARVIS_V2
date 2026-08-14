@@ -5,36 +5,25 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - uses: actions/setup-java@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Install Buildozer
+      - name: Setup Android SDK - WITH LICENSES
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-33 build-tools;33.0.2 build-tools;37.0.0 ndk;25.1.8937393'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install Buildozer Master
         run: |
-          sudo apt update
-          sudo apt install -y zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libtinfo5 cmake libffi-dev libssl-dev
           pip install cython==0.29.33
           pip install https://github.com/kivy/buildozer/archive/master.zip
           pip install https://github.com/kivy/python-for-android/archive/master.zip
-      - name: Build APK with License Hack
-        run: |
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-          # Primer intento para que cree la carpeta del SDK
-          buildozer android debug || true
-          # AHORA sí le metemos las licencias a SU SDK
-          SDK_PATH=$HOME/.buildozer/android/platform/android-sdk
-          mkdir -p $SDK_PATH/licenses
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $SDK_PATH/licenses/android-sdk-license
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $SDK_PATH/licenses/android-sdk-license
-          echo "24333f8a63b6825ea9c5514f83c1059b8ea3b4fd" >> $SDK_PATH/licenses/android-sdk-license
-          echo "y" | $SDK_PATH/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          yes | $SDK_PATH/cmdline-tools/latest/bin/sdkmanager "build-tools;37.0.0" || true
-          # Segundo intento ya con licencia aceptada
-          buildozer android debug
+      - name: Build APK
+        run: buildozer android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
