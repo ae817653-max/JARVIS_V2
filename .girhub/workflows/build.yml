@@ -1,73 +1,47 @@
-name: Build APK
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.button import Button
 
-on:
-  workflow_dispatch:
 
-jobs:
-  build:
-    runs-on: ubuntu-22.04
+class JarvisApp(App):
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    def build(self):
+        layout = BoxLayout(
+            orientation="vertical",
+            padding=24,
+            spacing=16
+        )
 
-      - name: Verify project files
-        run: |
-          echo "Contenido del repositorio:"
-          ls -la
+        title = Label(
+            text="JARVIS",
+            font_size="34sp",
+            size_hint_y=None,
+            height=70
+        )
 
-          echo "Buscando buildozer.spec:"
-          find . -maxdepth 3 -name "buildozer.spec" -print
+        status = Label(
+            text="Sistema listo",
+            font_size="20sp"
+        )
 
-          if [ ! -f "buildozer.spec" ]; then
-            echo "ERROR: buildozer.spec no está en la raíz del repositorio."
-            exit 1
-          fi
+        button = Button(
+            text="INICIAR JARVIS",
+            size_hint_y=None,
+            height=64
+        )
 
-          echo "buildozer.spec encontrado correctamente."
+        def iniciar_jarvis(instance):
+            status.text = "JARVIS iniciado correctamente"
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+        button.bind(on_release=iniciar_jarvis)
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
+        layout.add_widget(title)
+        layout.add_widget(status)
+        layout.add_widget(button)
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git \
-            zip \
-            unzip \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo5 \
-            cmake \
-            libffi-dev \
-            libssl-dev
+        return layout
 
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install buildozer
-          python -m pip install "cython==0.29.34"
 
-      - name: Build APK
-        run: |
-          buildozer android debug --verbose
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: JARVIS-APK
-          path: bin/*.apk
+if __name__ == "__main__":
+    JarvisApp().run()
