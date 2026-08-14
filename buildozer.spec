@@ -11,13 +11,8 @@ fullscreen = 0
 android.permissions = INTERNET
 android.api = 33
 android.minapi = 21
-android.ndk = 25b
+android.ndk = 28c
 android.build_tools_version = 33.0.2
 android.accept_sdk_license_agreements = True
-android.ndk = 28c
+android.sdk_path = /usr/local/lib/android/sdk
 android.ndk_path = /usr/local/lib/android/sdk/ndk/28.0.13004108
-android.sdk_path = /usr/local/lib/android/sdkp4a.branch = master
-p4a.bootstrap = sdl2
-
-[buildozer]
-log_level = 2
