@@ -27,6 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             git \
             zip \
@@ -42,46 +43,53 @@ jobs:
             cmake
 
           python -m pip install --upgrade pip
-          python -m pip install "Cython==0.29.33" buildozer
+
+          python -m pip install \
+            "Cython==0.29.33" \
+            buildozer
 
       - name: Prepare Android SDK
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
-          SYS="$ANDROID_HOME"
+          SYSTEM_SDK="$ANDROID_HOME"
 
+          echo "Sistema SDK:"
+          echo "$SYSTEM_SDK"
+
+          echo "Buildozer SDK:"
+          echo "$SDK"
+
+          # Crear estructura que Buildozer espera
           mkdir -p "$SDK"
-          mkdir -p "$SDK/cmdline-tools"
 
-          # Copiar command-line tools
-          if [ -d "$SYS/cmdline-tools/latest" ]; then
-            rm -rf "$SDK/cmdline-tools/latest"
-            cp -r "$SYS/cmdline-tools/latest" "$SDK/cmdline-tools/latest"
-          fi
-
-          # Compatibilidad con Buildozer:
-          # Buildozer busca sdkmanager en tools/bin/sdkmanager
+          rm -rf "$SDK/tools"
           mkdir -p "$SDK/tools"
 
-          rm -rf "$SDK/tools/bin"
+          # Copiar COMPLETO command-line-tools
+          # No usar enlaces simbólicos porque sdkmanager necesita
+          # sus carpetas bin y lib juntas.
+          cp -r "$SYSTEM_SDK/cmdline-tools/latest/"* "$SDK/tools/"
 
-          ln -s \
-            "$SDK/cmdline-tools/latest/bin" \
-            "$SDK/tools/bin"
+          chmod +x "$SDK/tools/bin/sdkmanager"
 
-          chmod +x "$SDK/cmdline-tools/latest/bin/sdkmanager"
+          echo "Contenido de tools:"
+          ls -la "$SDK/tools"
+
+          echo "Contenido de tools/bin:"
+          ls -la "$SDK/tools/bin"
 
           echo "Comprobando sdkmanager..."
 
           "$SDK/tools/bin/sdkmanager" --version
 
-          echo "sdkmanager encontrado correctamente"
+          echo "sdkmanager funciona correctamente"
 
-          # Aceptar licencias
+          # Licencias
           yes | "$SDK/tools/bin/sdkmanager" \
             --sdk_root="$SDK" \
             --licenses || true
 
-          # Instalar herramientas necesarias
+          # Herramientas Android necesarias
           "$SDK/tools/bin/sdkmanager" \
             --sdk_root="$SDK" \
             "platform-tools" \
@@ -94,17 +102,12 @@ jobs:
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-          # Asegurar que Buildozer encuentre sdkmanager
-          mkdir -p "$SDK/tools"
+          echo "Verificando sdkmanager antes de Buildozer..."
 
-          if [ ! -e "$SDK/tools/bin" ]; then
-            ln -s "$SDK/cmdline-tools/latest/bin" "$SDK/tools/bin"
-          fi
-
-          echo "Verificando sdkmanager:"
           "$SDK/tools/bin/sdkmanager" --version
 
           echo "Iniciando Buildozer..."
+
           buildozer android debug --verbose
 
       - name: Upload APK
