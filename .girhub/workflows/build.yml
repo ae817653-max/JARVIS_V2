@@ -1,9 +1,6 @@
 name: Build APK
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
@@ -11,8 +8,23 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Verify project files
+        run: |
+          echo "Contenido del repositorio:"
+          ls -la
+
+          echo "Buscando buildozer.spec:"
+          find . -maxdepth 3 -name "buildozer.spec" -print
+
+          if [ ! -f "buildozer.spec" ]; then
+            echo "ERROR: buildozer.spec no está en la raíz del repositorio."
+            exit 1
+          fi
+
+          echo "buildozer.spec encontrado correctamente."
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -25,7 +37,7 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Linux dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -50,14 +62,9 @@ jobs:
           python -m pip install buildozer
           python -m pip install "cython==0.29.34"
 
-      - name: Prepare Android toolchain
-        run: |
-          sed -i 's/^#\?android.accept_sdk_license.*/android.accept_sdk_license = True/' buildozer.spec
-          buildozer android p4a -- --help
-
       - name: Build APK
         run: |
-          buildozer android debug
+          buildozer android debug --verbose
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
