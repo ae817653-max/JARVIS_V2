@@ -16,26 +16,39 @@ jobs:
         shell: bash
         run: |
           set -e
-          echo "Directorio actual:"
+
+          echo "=== JARVIS APK BUILD ==="
+          echo "Directorio:"
           pwd
-          echo "Archivos del proyecto:"
-          ls -la
-          echo "Comprobando archivos necesarios..."
+
+          echo "Archivos:"
+          find . -maxdepth 2 -type f | sort
+
+          echo "Comprobando archivos..."
+
           test -f main.py
           test -f buildozer.spec
-          echo "OK: main.py encontrado"
-          echo "OK: buildozer.spec encontrado"
 
-      - name: Build APK
+          echo "OK: main.py"
+          echo "OK: buildozer.spec"
+
+      - name: Build APK with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
         id: buildozer
         with:
           workdir: .
           buildozer_version: stable
 
+      - name: Show generated files
+        shell: bash
+        run: |
+          echo "=== ARCHIVOS GENERADOS ==="
+          find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: JARVIS-APK
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: |
+            bin/*.apk
           if-no-files-found: error
